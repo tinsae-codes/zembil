@@ -46,3 +46,22 @@ class UserModel(db.Model):
             return None
         return UserModel.query.get(user_id)
 
+
+class CategoryModel(db.Model):
+    __tablename__ = "category"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+
+    shops = db.relationship('ShopModel', back_populates='category')
+    products = db.relationship('ProductModel', back_populates='category')
+
+
+class LocationModel(db.Model):
+    __tablename__ = "location"
+    id = db.Column(db.Integer, primary_key=True)
+    longitude = db.Column(db.Float, nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    __table_args__ = (db.UniqueConstraint('latitude', 'longitude'), )
+
+    shop = db.relationship('ShopModel', back_populates='location')
