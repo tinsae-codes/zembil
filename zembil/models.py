@@ -65,3 +65,36 @@ class LocationModel(db.Model):
     __table_args__ = (db.UniqueConstraint('latitude', 'longitude'), )
 
     shop = db.relationship('ShopModel', back_populates='location')
+
+class ShopModel(db.Model):
+    __tablename__ = "shop"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    building_name = db.Column(db.String(300), nullable=False)
+    phone_number1 = db.Column(db.String(50), nullable=True)
+    phone_number2 = db.Column(db.String(50), nullable=True)
+    image = db.Column(db.String(300), nullable=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(db.Boolean, nullable=True)
+
+    user = db.relationship('UserModel', back_populates='shops')
+    location = db.relationship('LocationModel', back_populates='shop', cascade="all,delete")
+    category = db.relationship('CategoryModel', back_populates='shops')
+    products = db.relationship('ProductModel', back_populates='shop')
+    ads = db.relationship('AdvertisementModel', backref='shop', lazy=True)
+    followers = db.relationship('ShopFollowerModel', back_populates='shop')
+
+
+class ShopFollowerModel(db.Model):
+    __tablename__ = "shop_follower"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'), nullable=False)
+    __table_args__ = (db.UniqueConstraint('user_id', 'shop_id'), )
+
+    user = db.relationship('UserModel', back_populates='shops_followed')
+    shop = db.relationship('ShopModel', back_populates='followers')
+
