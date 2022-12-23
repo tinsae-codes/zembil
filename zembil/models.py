@@ -98,3 +98,54 @@ class ShopFollowerModel(db.Model):
     user = db.relationship('UserModel', back_populates='shops_followed')
     shop = db.relationship('ShopModel', back_populates='followers')
 
+
+class ProductModel(db.Model):
+    __tablename__ = "product"
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'), nullable=False)
+    brand = db.Column(db.String, nullable=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
+    name = db.Column(db.String(300), nullable=False)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    description = db.Column(db.Text, nullable=True)
+    price = db.Column(db.Float, nullable=False)
+    condition = db.Column(db.String(30), nullable=False)
+    image = db.Column(db.String(300), nullable=True)
+    delivery_available = db.Column(db.Boolean, nullable=False, default=False)
+    discount = db.Column(db.Float, nullable=False, default=0.0)
+    product_count = db.Column(db.Integer, nullable=False, default=1)
+    __table_args__ = (db.UniqueConstraint('shop_id', 'name'), )
+
+    shop = db.relationship('ShopModel', back_populates='products')
+    wishlists = db.relationship('WishListModel', back_populates='product')
+    reviews = db.relationship('ReviewModel', back_populates='product')
+    category = db.relationship('CategoryModel', back_populates='products')
+
+
+class ReviewModel(db.Model):
+    __tablename__ = "review"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey(
+        'product.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    review_text = db.Column(db.Text, nullable=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('user_id', 'product_id'), )
+
+    user = db.relationship('UserModel', back_populates='reviews')
+    product = db.relationship('ProductModel', back_populates='reviews')
+
+
+class WishListModel(db.Model):
+    __tablename__ = "wishlist"
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey(
+        'product.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('user_id', 'product_id'), )
+
+    user = db.relationship('UserModel', back_populates='wishlists')
+    product = db.relationship('ProductModel', back_populates='wishlists')
+
