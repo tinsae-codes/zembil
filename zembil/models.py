@@ -47,25 +47,6 @@ class UserModel(db.Model):
         return UserModel.query.get(user_id)
 
 
-class CategoryModel(db.Model):
-    __tablename__ = "category"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
-
-    shops = db.relationship('ShopModel', back_populates='category')
-    products = db.relationship('ProductModel', back_populates='category')
-
-
-class LocationModel(db.Model):
-    __tablename__ = "location"
-    id = db.Column(db.Integer, primary_key=True)
-    longitude = db.Column(db.Float, nullable=False)
-    latitude = db.Column(db.Float, nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    __table_args__ = (db.UniqueConstraint('latitude', 'longitude'), )
-
-    shop = db.relationship('ShopModel', back_populates='location')
-
 class ShopModel(db.Model):
     __tablename__ = "shop"
     id = db.Column(db.Integer, primary_key=True)
@@ -122,6 +103,25 @@ class ProductModel(db.Model):
     category = db.relationship('CategoryModel', back_populates='products')
 
 
+class CategoryModel(db.Model):
+    __tablename__ = "category"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+
+    shops = db.relationship('ShopModel', back_populates='category')
+    products = db.relationship('ProductModel', back_populates='category')
+
+
+class LocationModel(db.Model):
+    __tablename__ = "location"
+    id = db.Column(db.Integer, primary_key=True)
+    longitude = db.Column(db.Float, nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    __table_args__ = (db.UniqueConstraint('latitude', 'longitude'), )
+
+    shop = db.relationship('ShopModel', back_populates='location')
+
 class ReviewModel(db.Model):
     __tablename__ = "review"
     id = db.Column(db.Integer, primary_key=True)
@@ -149,3 +149,33 @@ class WishListModel(db.Model):
     user = db.relationship('UserModel', back_populates='wishlists')
     product = db.relationship('ProductModel', back_populates='wishlists')
 
+
+class AdvertisementModel(db.Model):
+    __tablename__ = "advertisement"
+
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    discount = db.Column(db.Float, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=True, default=None)
+    end_date = db.Column(db.DateTime, nullable=True, default=None)
+    is_active = db.Column(db.Boolean, nullable=False, default=False)
+    
+class RevokedTokenModel(db.Model):
+    __tablename__ = "revoked_tokens"
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(120))
+
+    @classmethod
+    def is_jti_blacklisted(cls, jti):
+        query = cls.query.filter_by(jti=jti).first()
+        return bool(query)
+
+
+class NotificationModel(db.Model):
+    __tablename__ = "notification"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    notification_message = db.Column(db.String, nullable=False)
+    notification_type = db.Column(db.String, nullable=True)
+    seen = db.Column(db.Boolean, nullable=False, default=False)
