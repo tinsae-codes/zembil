@@ -91,3 +91,60 @@ class ShopSchema(ma.Schema):
         if not rule.search(value):
             msg = u"Invalid mobile number."
             raise ValidationError(msg)
+
+class RatingSchema(ma.Schema):
+    class Meta:
+        fields = ("ratingcount", "averageRating")
+        ordered = True
+    averageRating = fields.Float(dump_only=True)
+    ratingcount = fields.Integer(dump_only=True)
+
+
+class ProductSchema(ma.Schema):
+    class Meta:
+        fields = ("id", "shop_id", "brand", "name", "date",
+                  "description", "category", "category_id", "price", "condition", "image",
+                  "delivery_available", "discount", "product_count", "rating")
+        model = ProductModel
+        ordered = True
+    id = fields.Integer(dump_only=True, data_key="productId")
+    name = fields.String(required=True, data_key="productName")
+    date = fields.DateTime(dump_only=True, data_key="dateInserted")
+    brand = fields.String(required=False, data_key="brand")
+    shop_id = fields.Integer(required=True, data_key="shopId")
+    category_id = fields.Integer(required=True, data_key="categoryId")
+    category = fields.Pluck(CategorySchema, 'name', dump_only=True)
+    description = fields.String(required=True, validate=validate.Length(5))
+    price = fields.Float(required=True, validate=lambda n: n > 0)
+    condition = fields.String(required=True)
+    image = fields.String(required=False, data_key="imageUrl")
+    delivery_available = fields.Boolean(
+        required=False, data_key="deliveryAvailable")
+    discount = fields.Float(required=False, validate=lambda n: n >= 0)
+    product_count = fields.Integer(
+        required=False, validate=lambda n: n >= 0, data_key="productCount")
+    rating = fields.Float(dump_only=True)
+
+    @validates("image")
+    def validate_url(self, value):
+        regex = re.compile(
+            r'^(?:http|ftp)s?://'  # http:// or https://
+            # domain...
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+            r'localhost|'  # localhost...
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+            r'(?::\d+)?'  # optional port
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        if not re.match(regex, value):
+            msg = u"Invalid image url."
+            raise ValidationError(msg)
+
+
+class ShopProductSchema(ma.Schema):
+    class Meta:
+        fields = ("id", "products")
+        model = ShopModel
+        ordered = True
+    id = fields.Integer(data_key="shopId")
+    products = ma.List(ma.Nested(ProductSchema))
+
