@@ -79,3 +79,20 @@ class User(Resource):
             existing = UserModel.query.filter_by(id=id).update(args)
         return abort(403, message="User not authorized!")
 
+
+class Authorize(Resource):
+    def post(self):
+        args = user_auth_arguments.parse_args()
+        username = args['username']
+        password = args['password']
+        user = UserModel.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            expires = timedelta(days=30)
+            additional_claims = {"role": user.role}
+            token = create_access_token(
+                identity=user.id,
+                expires_delta=expires,
+                additional_claims=additional_claims)
+            return make_response(jsonify({'token': token}))
+        return abort(401, message="Incorrect Username or password")
+
