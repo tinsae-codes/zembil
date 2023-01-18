@@ -148,3 +148,51 @@ class VerifyToken(Resource):
 
         return {'message': 'Password reset successful'}, 200
 
+
+class AdminUser(Resource):
+    @jwt_required()
+    def post(self):
+        role = get_jwt()['role']
+        if role == 'user':
+            abort(403, message="Admin Privilege Required!")
+        data = request.get_json()
+        try:
+            args = user_schema.load(data)
+        except ValidationError as errors:
+            abort(400, message=errors.messages)
+        user = UserModel(username=args['username'], email=args['email'],
+                         password=args['password_hash'], role='admin', phone=args['phone'])
+        db.session.add(user)
+        db.session.commit()
+        return user_schema.dump(user), 201
+
+
+class UserLogout(Resource):
+    @jwt_required()
+    def post(self):
+        jti = get_jwt()["jti"]
+        try:
+            revoked_token = RevokedTokenModel(jti=jti)
+            db.session.add(revoked_token)
+            db.session.commit()
+            return make_response(jsonify({'message': 'User log out succesfull'}), 200)
+        except:
+            return make_response(jsonify({'message': 'Something went wrong'}), 500)
+
+
+class AdminStatus(Resource):
+    @jwt_required()
+    def get(self):
+        role = get_jwt()['role']
+        if role == 'user':
+            abort(403, message="Requires admin privelege")
+        product_count = db.session.query(ProductModel).count()
+        user_count = db.session.query(UserModel).count()
+        advertisement_count = db.session.query(AdvertisementModel).count()
+        shop_count = db.session.query(ShopModel).count()
+        return make_response(jsonify({
+            "products": product_count,
+            "users": user_count,
+            "ads": advertisement_count,
+            "shops": shop_count
+        }), 200)
