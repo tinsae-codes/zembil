@@ -98,3 +98,41 @@ class Shop(Resource):
             abort(403, message="User is not owner of this shop!")
         abort(404, message="Shop doesn't exist!")
 
+
+class UserShops(Resource):
+    @jwt_required()
+    def get(self):
+        user_id = get_jwt_identity()
+        user = UserModel.query.get(user_id)
+        return shops_schema.dump(user.shops)
+
+
+class SearchShop(Resource):
+    def get(self):
+        name = request.args.get('name')
+        category = request.args.get('category')
+        shops = ShopModel.query
+        if name:
+            shops = shops.filter(ShopModel.name.ilike('%' + name + '%'))
+        if category:
+            shops = shops.filter(CategoryModel.name.ilike('%' + category + '%'))
+        shops = shops.order_by(ShopModel.name).all()
+        if shops:
+            return shops_schema.dump(shops)
+        abort(404, message="Product doesn't exist!")
+
+class ApproveShop(Resource):
+    @jwt_required()
+    def patch(self, id):
+        args = shop_status_arguments.parse_args()
+        status = args['isActive']
+        role = get_jwt()['role']
+        if role == 'user':
+            abort(403, message="Higher Privelege required")
+        shop = ShopModel.query.filter_by(id=id)
+        if not status:
+              shop.delete()
+        else:  
+            shop.first().status = status
+        db.session.commit()
+        return shop_schema.dump(shop), 204
