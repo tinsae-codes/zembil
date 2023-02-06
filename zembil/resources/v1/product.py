@@ -129,3 +129,62 @@ class UserProducts(Resource):
         shop_ids = [shop.id for shop in user.shops]
         result = db.session.query(ProductModel).filter(ProductModel.shop_id.in_(shop_ids)).all()
         return products_schema.dump(result)
+
+class SearchProduct(Resource):
+    def get(self):
+        name = request.args.get('name')
+        category = request.args.get('category')
+        products = ProductModel.query
+        if name:
+            products = products.filter(ProductModel.name.ilike('%' + name + '%'))
+        if category:
+            products = products.filter(CategoryModel.name.ilike('%' + category + '%'))
+        products = products.order_by(ProductModel.name).all()
+        if products:
+            return products_schema.dump(products)
+        abort(404, message="Product doesn't exist!")
+
+class FilterProduct(Resource):
+    def get(self):
+        min_price = request.args.get('minPrice')
+        max_price = request.args.get('maxPrice')
+        products = ProductModel.query
+        if min_price:
+            products = products.filter(ProductModel.price >= float(min_price))
+        if max_price:
+            products = products.filter(ProductModel.price <= float(max_price))
+        if products:
+            return products_schema.dump(products)
+        abort(404, message="Product doesn't exist!")
+
+
+class TrendingProduct(Resource):
+    def get(self):
+        s = request.args.get('s')
+        products = ProductModel.query
+        if s:
+            if s == 'latest':
+                products = products.order_by(ProductModel.date.desc())
+            if s == 'popular':
+                sub_query = db.session.query(
+                    ReviewModel.product_id, 
+                    func.avg(ReviewModel.rating).label('rating')
+                    ).group_by(ReviewModel.product_id).subquery()
+                products = db.session.query(
+                        ProductModel).join(
+                    sub_query, 
+                    ProductModel.id == sub_query.c.product_id
+                    ).order_by(sub_query.c.rating.desc())
+            results_per_page = current_app.config['PAGINATION_PAGE_SIZE']
+            pagination_helper = PaginationHelper(
+                request,
+                query=products,
+                resource_for_url='api_v1.trendingproduct',
+                key_name='results',
+                schema=products_schema,
+                results_per_page=results_per_page
+            )
+            result = pagination_helper.paginate_query()
+            return result
+        abort(404, message="Product doesn't exist")
+
